@@ -1,12 +1,13 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class PlayerMovement2DTemplate : MonoBehaviour
+public class PlayerMovement2DPlatformer : MonoBehaviour
 {
     private enum State
     {
-        idle, moving, rising, falling
+        idle, moving, rising, falling, rolling
     };
 
     private State currentState;
@@ -16,16 +17,11 @@ public class PlayerMovement2DTemplate : MonoBehaviour
     private Rigidbody2D theRB;
     private Animator theAnim;
 
-    public float moveSpeed;
-    public float jumpHeight;
+    public float moveSpeed, jumpForce, jumpVelMult, hangVelThreshold,hangVelMult, fallingGravityMult;
 
-    private bool isMoving;
-    private bool isFalling;
-    private bool isGrounded;
-    private bool canMove;
-    private bool isFacingRight;
+    private bool isMoving, isFalling, isGrounded, canMove, isFacingRight;
 
-    private float activeMoveSpeed;
+    private float activeMoveSpeed, originalGravity;
     
 
     // Start is called before the first frame update
@@ -38,6 +34,7 @@ public class PlayerMovement2DTemplate : MonoBehaviour
         theAnim = GetComponent<Animator>();
 
         activeMoveSpeed = moveSpeed;
+        originalGravity = theRB.gravityScale;
 
         canMove = true;
         isFacingRight = true;
@@ -51,6 +48,15 @@ public class PlayerMovement2DTemplate : MonoBehaviour
         isMoving = currentState != State.idle;
         isFalling = currentState == State.falling;
         isGrounded = Physics2D.OverlapCircle(groundCheckPoint.position, .2f, whatIsGround);
+
+        if (isFalling)
+        {
+            theRB.gravityScale = originalGravity * fallingGravityMult;
+        }
+        else
+        {
+            theRB.gravityScale = originalGravity;
+        }
 
         if (canMove)
         {
@@ -88,7 +94,7 @@ public class PlayerMovement2DTemplate : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.W))
         {
-            theRB.velocity = new Vector2(theRB.velocity.x, jumpHeight);
+            theRB.velocity = new Vector2(theRB.velocity.x, theRB.velocity.y + ((jumpForce + (0.5f * Time.fixedDeltaTime * -theRB.gravityScale)) / theRB.mass));
         }
 
         if (theRB.velocity != Vector2.zero)
@@ -112,7 +118,7 @@ public class PlayerMovement2DTemplate : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.W))
         {
-            theRB.velocity = new Vector2(theRB.velocity.x, jumpHeight);
+            theRB.velocity = new Vector2(theRB.velocity.x, theRB.velocity.y + ((jumpForce + (0.5f * Time.fixedDeltaTime * -theRB.gravityScale)) / theRB.mass));
         }
 
         if (theRB.velocity.y != 0)
@@ -128,18 +134,23 @@ public class PlayerMovement2DTemplate : MonoBehaviour
 
     private void HandleRisingState()
     {
+        if (Math.Abs(theRB.velocity.y) < hangVelThreshold)
+        {
+            theRB.velocity = new Vector2(activeMoveSpeed * Input.GetAxisRaw("Horizontal") * hangVelMult, theRB.velocity.y);
+        }
+        else
+        {
+            theRB.velocity = new Vector2(activeMoveSpeed * Input.GetAxisRaw("Horizontal") * jumpVelMult, theRB.velocity.y);
+        }
+
         if (Input.GetKeyUp(KeyCode.W) && theRB.velocity.y > 0)
         {
             theRB.velocity = new Vector2(theRB.velocity.x, theRB.velocity.y / 2);
         }
 
-        if (theRB.velocity.y < 0)
+        if (theRB.velocity.y <= 0)
         {
             currentState = State.falling;
-        }
-        else if (theRB.velocity.y == 0)
-        {
-            currentState = State.idle;
         }
     }
 
