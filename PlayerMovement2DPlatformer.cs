@@ -18,9 +18,6 @@ public class PlayerMovement2DTemplate : MonoBehaviour
 
     public float moveSpeed;
     public float jumpHeight;
-    public float rollSpeedMult;
-    public float rollDuration;
-    public float invincDuration;
 
     private bool isMoving;
     private bool isFalling;
